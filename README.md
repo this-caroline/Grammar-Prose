@@ -47,8 +47,8 @@ of comfortable memory headroom. Other hardware needs its own evaluation.
 ### Build and load the extension
 
 ```sh
-git clone https://github.com/this-caroline/grammar-ext.git
-cd grammar-ext
+git clone https://github.com/this-caroline/Grammar-Prose.git
+cd Grammar-Prose
 ```
 
 On macOS/Linux with [nvm](https://github.com/nvm-sh/nvm#installing-and-updating),
@@ -168,7 +168,7 @@ No API key, backend, database, Docker service, or `.env` file is required.
 ## Contributing
 
 Report bugs and propose improvements through
-[GitHub issues](https://github.com/this-caroline/grammar-ext/issues).
+[GitHub issues](https://github.com/this-caroline/Grammar-Prose/issues).
 For bugs, include reproduction steps, expected and actual behavior, browser/OS
 versions, and model/Ollama versions when relevant. Use synthetic text; do not
 include private drafts, memory exports, or personal browser profiles.
