@@ -3,7 +3,9 @@
     "src/chrome/background.ts",
     "src/chrome/content.ts",
     "src/chrome/options.ts",
-    "src/evaluation/cli.ts"
+    "src/evaluation/cli.ts",
+    "src/evaluation/score-cli.ts",
+    "tests/react-fixture.ts"
   ],
   "ignoreUnresolvedImports": ["./options.js"],
   "ignoreExports": [

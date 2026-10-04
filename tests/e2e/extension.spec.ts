@@ -9,6 +9,7 @@ import {
   type Page,
   type Worker,
 } from '@playwright/test';
+import { build } from 'esbuild';
 
 import { saveBrowserCoverage } from './coverage';
 
@@ -28,6 +29,10 @@ async function initializeReviewMock(worker: Worker): Promise<void> {
     (globalThis as MockGlobal).reviewMock = state;
 
     globalThis.fetch = async (input, init) => {
+      if (input === 'http://localhost:11434/api/tags') {
+        return Response.json({ models: [{ name: 'fixture-model' }] });
+      }
+
       if (input !== 'http://localhost:11434/api/chat' || init?.method !== 'POST') {
         throw new Error('Unexpected network request in test.');
       }
@@ -65,7 +70,27 @@ const test = base.extend<{
 }>({
   extension: async ({ playwright }, use, testInfo) => {
     const html = await readFile('tests/editor-fixture.html', 'utf8');
-    const server: Server = createServer((...[, response]) => {
+    const reactBundle = await build({
+      entryPoints: ['tests/react-fixture.ts'],
+      bundle: true,
+      write: false,
+      format: 'iife',
+    });
+    const server: Server = createServer((request, response) => {
+      if (request.url === '/react-fixture.js') {
+        response.setHeader('Content-Type', 'text/javascript');
+        response.end(reactBundle.outputFiles[0].text);
+
+        return;
+      }
+
+      if (request.url === '/react') {
+        response.setHeader('Content-Type', 'text/html');
+        response.end('<div id="react-root"></div><script src="/react-fixture.js"></script>');
+
+        return;
+      }
+
       response.setHeader('Content-Type', 'text/html');
       response.end(html);
     });
@@ -80,7 +105,8 @@ const test = base.extend<{
     }
 
     const extensionPath = resolve(
-      process.env.GRAMMAR_PROSE_COVERAGE === '1' ? 'coverage/extension' : 'dist',
+      process.env.GRAMMAR_PROSE_EXTENSION_DIRECTORY ??
+        (process.env.GRAMMAR_PROSE_COVERAGE === '1' ? 'coverage/extension' : 'dist'),
     );
     let context: BrowserContext | undefined;
 
@@ -103,7 +129,7 @@ const test = base.extend<{
         if (process.env.GRAMMAR_PROSE_COVERAGE === '1') {
           await saveBrowserCoverage(
             context,
-            worker,
+            context.serviceWorkers()[0] ?? worker,
             resolve('coverage/browser', String(testInfo.testId)),
           );
         }
@@ -483,3 +509,243 @@ for (const preflight of [
     expect(await worker.evaluate(() => (globalThis as MockGlobal).reviewMock.calls)).toBe(0);
   });
 }
+
+for (const crossOrigin of [false, true]) {
+  test(`${crossOrigin ? 'cross-origin' : 'same-origin'} frame preserves exact replacement and undo`, async ({
+    extension: { page },
+  }) => {
+    const frameUrl = new URL(page.url());
+
+    if (crossOrigin) {
+      frameUrl.hostname = 'localhost';
+    }
+
+    await page.evaluate((source) => {
+      const frame = document.createElement('iframe');
+      frame.title = 'Writing frame';
+      frame.src = source;
+      document.body.append(frame);
+    }, frameUrl.href);
+    const frame = page.frameLocator('iframe');
+    const field = frame.getByLabel('Plain input', { exact: true });
+    await field.focus();
+    await frame.getByRole('button', { name: 'Show writing suggestions' }).click();
+    await frame.getByRole('button', { name: 'Accept', exact: true }).click();
+    await expect(field).toHaveValue('The tests are failing.');
+    await field.press('ControlOrMeta+z');
+    await expect(field).toHaveValue('The tests is failing.');
+    await field.press('ControlOrMeta+Shift+z');
+    await expect(field).toHaveValue('The tests are failing.');
+  });
+}
+
+test('settings changes during inference discard the result without modifying text', async ({
+  extension: { page, worker },
+}) => {
+  await worker.evaluate(() => {
+    (globalThis as MockGlobal).reviewMock.delay = 1200;
+  });
+  const field = page.locator('textarea').first();
+  await field.focus();
+  await expect
+    .poll(() => worker.evaluate(() => (globalThis as MockGlobal).reviewMock.calls))
+    .toBe(1);
+  await worker.evaluate(async () => {
+    await chrome.storage.local.set({
+      settings: { version: 1, model: 'fixture-model', disabledSites: ['127.0.0.1'] },
+    });
+  });
+  await page.waitForTimeout(1500);
+  await expect(page.getByRole('button', { name: 'Show writing suggestions' })).toBeHidden();
+  await expect(field).toHaveValue('The tests is failing. Please fix this today.');
+});
+
+test('keyboard review actions announce status and Escape restores field focus', async ({
+  extension: { page },
+}) => {
+  const field = page.locator('textarea').first();
+  await page.locator('input, textarea, [contenteditable]').evaluateAll((elements) => {
+    for (const element of elements) {
+      if (element !== document.querySelector('textarea')) {
+        element.remove();
+      }
+    }
+  });
+  await field.focus();
+  const badge = page.getByRole('button', { name: 'Show writing suggestions' });
+  await expect(badge).toBeVisible();
+  await field.press('Tab');
+
+  await expect(badge).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('button', { name: 'Accept', exact: true })).toBeFocused();
+  await expect(page.getByRole('status')).toHaveText('Review each change before accepting.');
+  await page.keyboard.press('Escape');
+  await expect(field).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Accept', exact: true })).toBeHidden();
+  await field.press('Tab');
+  await expect(badge).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('button', { name: 'Accept', exact: true })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(field).toBeFocused();
+  await expect(field).toHaveValue('The tests are failing. Please fix this today.');
+  await field.press('ControlOrMeta+z');
+  await expect(field).toHaveValue('The tests is failing. Please fix this today.');
+});
+
+test('review badge stays within the viewport during scroll and resize', async ({
+  extension: { page },
+}) => {
+  await openReview(page);
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.setViewportSize({ width: 480, height: 480 });
+  await page.evaluate(() => {
+    document.body.style.minHeight = '2000px';
+    window.scrollTo(0, 80);
+  });
+  const badge = page.getByRole('button', { name: 'Show writing suggestions' });
+  await expect(badge).toBeVisible();
+  const bounds = await badge.boundingBox();
+  expect(bounds).not.toBeNull();
+  expect(bounds!.x).toBeGreaterThanOrEqual(0);
+  expect(bounds!.y).toBeGreaterThanOrEqual(0);
+  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(480);
+  expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(480);
+  await page.evaluate(() => window.scrollTo(0, 1500));
+  await expect(badge).toBeHidden();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(badge).toBeVisible();
+});
+
+for (const label of ['React input', 'React textarea']) {
+  test(`${label} synchronizes acceptance, selection, undo and redo with React state`, async ({
+    extension: { page },
+  }) => {
+    await page.goto(new URL('/react', page.url()).href);
+    const field = page.getByLabel(label, { exact: true });
+    const state = page.getByLabel(`${label} state`, { exact: true });
+    await field.focus();
+    await page.getByRole('button', { name: 'Show writing suggestions' }).click();
+    await field.evaluate((element: HTMLInputElement | HTMLTextAreaElement) => {
+      element.setSelectionRange(24, 30, 'backward');
+    });
+    await page.getByRole('button', { name: 'Accept', exact: true }).click();
+    const original = 'The tests is failing. Please fix this today.';
+    const corrected = 'The tests are failing. Please fix this today.';
+    await expect(field).toHaveValue(corrected);
+    await expect(state).toHaveText(corrected);
+    expect(
+      await field.evaluate((element: HTMLInputElement | HTMLTextAreaElement) => [
+        element.selectionStart,
+        element.selectionEnd,
+      ]),
+    ).toEqual([25, 31]);
+    await page.getByRole('button', { name: `${label} rerender`, exact: true }).click();
+    await expect(field).toHaveValue(corrected);
+    await field.press('ControlOrMeta+z');
+    await expect(field).toHaveValue(original);
+    await expect(state).toHaveText(original);
+    await field.press('ControlOrMeta+Shift+z');
+    await expect(field).toHaveValue(corrected);
+    await expect(state).toHaveText(corrected);
+  });
+}
+
+async function restartWorker(context: BrowserContext, page: Page, worker: Worker): Promise<Worker> {
+  const session = await context.newCDPSession(page);
+  let versionId: string | undefined;
+  let runningState = '';
+  session.on('ServiceWorker.workerVersionUpdated', ({ versions }) => {
+    const version = versions.find((entry) => entry.scriptURL === worker.url());
+
+    if (version) {
+      versionId = version.versionId;
+      runningState = version.runningStatus;
+    }
+  });
+  await session.send('ServiceWorker.enable');
+  await expect.poll(() => versionId).toBeDefined();
+  await session.send('ServiceWorker.stopWorker', { versionId: versionId! });
+  await expect.poll(() => runningState).toBe('stopped');
+  await session.detach();
+  const wakePage = await context.newPage();
+  await wakePage.goto(new URL('options.html', worker.url()).href);
+  await wakePage.evaluate(async () => {
+    await chrome.runtime.sendMessage({ type: 'settings' });
+  });
+  const nextWorker = context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'));
+  expect(
+    await nextWorker.evaluate(() => typeof (globalThis as Partial<MockGlobal>).reviewMock),
+  ).toBe('undefined');
+  await initializeReviewMock(nextWorker);
+  await wakePage.close();
+  await page.bringToFront();
+
+  return nextWorker;
+}
+
+for (const phase of ['review', 'feedback']) {
+  test(`worker restart during ${phase} preserves text and permits a fresh review`, async ({
+    extension: { context, page, worker },
+  }) => {
+    const field = page.locator('textarea').first();
+
+    if (phase === 'review') {
+      await worker.evaluate(() => {
+        (globalThis as MockGlobal).reviewMock.delay = 5000;
+      });
+      await field.focus();
+      await expect
+        .poll(() => worker.evaluate(() => (globalThis as MockGlobal).reviewMock.calls))
+        .toBe(1);
+    } else {
+      await openReview(page);
+      await delayNextFeedback(worker, false);
+      await page.getByRole('button', { name: 'Accept', exact: true }).click();
+      await expect
+        .poll(() => worker.evaluate(() => (globalThis as FeedbackGlobal).feedbackGate.started))
+        .toBe(true);
+    }
+
+    const nextWorker = await restartWorker(context, page, worker);
+    const expected =
+      phase === 'review'
+        ? 'The tests is failing. Please fix this today.'
+        : 'The tests are failing. Please fix this today.';
+    await expect(field).toHaveValue(expected);
+    expect(
+      await nextWorker.evaluate(async () => (await chrome.storage.local.get('memory')).memory),
+    ).toBeUndefined();
+    await field.fill('The tests is failing. Please fix this today.');
+    await openReview(page);
+    await page.getByRole('button', { name: 'Accept', exact: true }).click();
+    await expect(field).toHaveValue('The tests are failing. Please fix this today.');
+    await field.press('ControlOrMeta+z');
+    await expect(field).toHaveValue('The tests is failing. Please fix this today.');
+  });
+}
+
+test('clean setup discovers a model, persists settings and accepts with native undo', async ({
+  extension: { context, page, worker, optionsUrl },
+}) => {
+  await worker.evaluate(async () => {
+    await chrome.storage.local.clear();
+  });
+  const options = await context.newPage();
+  await options.goto(optionsUrl);
+  await options.getByRole('button', { name: 'Connect', exact: false }).click();
+  await expect(options.getByRole('status')).toContainText('Connected. 1 installed model');
+  await options.locator('#model').fill('fixture-model');
+  await options.getByRole('button', { name: 'Save settings', exact: true }).click();
+  await expect(options.getByRole('status')).toHaveText('Settings saved.');
+  await options.reload();
+  await expect(options.locator('#model')).toHaveValue('fixture-model');
+  await page.bringToFront();
+  await openReview(page);
+  await page.getByRole('button', { name: 'Accept', exact: true }).click();
+  const field = page.locator('textarea').first();
+  await expect(field).toHaveValue('The tests are failing. Please fix this today.');
+  await field.press('ControlOrMeta+z');
+  await expect(field).toHaveValue('The tests is failing. Please fix this today.');
+});

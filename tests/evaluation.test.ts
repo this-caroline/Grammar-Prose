@@ -53,7 +53,18 @@ test('evaluation preserves inclusive limits and explicit category labels', () =>
     text: 'x'.repeat(6000),
     expectedCategories: ['grammar', 'tone'],
     meaning: 'Preserve the facts.',
+    acceptableOutcomes: ['Keep the facts.'],
   };
   const dataset = { ...valid, provenance: 'user-approved', cases: [evaluationCase] };
   expect(parseDataset(dataset)).toEqual(dataset);
+});
+
+test('approved cases require explicit acceptable outcomes; synthetic cases remain compatible', () => {
+  expect(() => parseDataset({ ...valid, provenance: 'user-approved' })).toThrow();
+
+  for (const acceptableOutcomes of [[], [''], [1], 'rewrite']) {
+    expect(() =>
+      parseDataset({ ...valid, cases: [{ ...valid.cases[0], acceptableOutcomes }] }),
+    ).toThrow();
+  }
 });

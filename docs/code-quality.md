@@ -125,14 +125,14 @@ pnpm format
 pnpm check
 ```
 
-Run the focused browser or evaluation command when the changed behavior requires it. `pnpm check` verifies formatting, linting, type checking, unused-code analysis, deterministic tests, and a clean build. CI installs from `pnpm-lock.yaml` with `--frozen-lockfile`, repeats that gate, runs Playwright, and collects coverage.
+Run the focused browser or evaluation command when the changed behavior requires it. `pnpm check` verifies formatting, linting, type checking, unused-code analysis, deterministic tests, the Python 3 standard-library archive test, and a clean build. CI installs from `pnpm-lock.yaml` with `--frozen-lockfile`, repeats that gate, runs Playwright, and collects coverage.
 
 Do not mark an AI-assisted task complete because the generated code compiles. It is complete only when the relevant behavior is tested, the full quality gate passes, and the implementation remains clear to a maintainer reading it without the generation context.
 
 ## Fallow analysis
 
 Run `pnpm dead-code` for the pinned blocking scan. `.fallowrc.json`
-declares the runtime roots bundled by `scripts/build.ts` and `scripts/eval.ts`.
+declares the runtime roots bundled by `scripts/build.ts`, `scripts/eval.ts`, `scripts/score.ts`, and the React browser fixture.
 The editor is reached through the content script. These files are required runtime
 code, even when the analyzer cannot discover esbuild's `entryPoints` property.
 The sole unresolved-import exception, `./options.js`, is generated from

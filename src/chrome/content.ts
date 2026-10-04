@@ -11,6 +11,7 @@ let snapshot = '';
 let token = '';
 let suggestions: Suggestion[] = [];
 let status = '';
+let badgeAvailable = false;
 let timer: ReturnType<typeof setTimeout> | undefined;
 let revision = 0;
 let composing = false;
@@ -34,6 +35,7 @@ function invalidate() {
   clearTimeout(timer);
   suggestions = [];
   snapshot = '';
+  badgeAvailable = false;
   badge.hidden = true;
   panel.hidden = true;
   void send({ type: 'cancel' }).catch(() => {});
@@ -48,9 +50,7 @@ function position() {
   badge.style.left = `${Math.max(4, Math.min(innerWidth - 90, rect.right - 72))}px`;
   badge.style.top = `${Math.max(4, Math.min(innerHeight - 35, rect.bottom + 3))}px`;
 
-  if (!field.isConnected || rect.bottom < 0 || rect.top > innerHeight) {
-    badge.hidden = true;
-  }
+  badge.hidden = !badgeAvailable || !field.isConnected || rect.bottom < 0 || rect.top > innerHeight;
 }
 
 interface ReviewAction {
@@ -278,7 +278,7 @@ async function check(requestedManually = false) {
     suggestions = result.suggestions;
     status = describeReviewResult(currentField);
     badge.textContent = `${suggestions.length} edits`;
-    badge.hidden = !suggestions.length;
+    badgeAvailable = suggestions.length > 0;
     position();
     render();
   } catch (error) {
@@ -288,7 +288,7 @@ async function check(requestedManually = false) {
 
     showError(error);
     badge.textContent = 'Grammar Prose !';
-    badge.hidden = false;
+    badgeAvailable = true;
     position();
   }
 }

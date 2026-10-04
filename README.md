@@ -234,3 +234,5 @@ and [Ollama FAQ](https://docs.ollama.com/faq).
 ## License
 
 Grammar Prose is available under the [MIT license](LICENSE).
+
+For reproducible local archives, installation, upgrade and rollback, see [the personal-pilot candidate](docs/release-pilot.md). Release approval remains pending.

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 
 import { test, vi, expect, afterEach } from 'vitest';
 
-import { LocalOllama, ENDPOINT } from '../src/adapters/ollama';
+import { LocalOllama, ENDPOINT, MalformedModelOutput } from '../src/adapters/ollama';
 import { emptyMemory } from '../src/domain/review';
 import { isRecord } from '../src/domain/validation';
 
@@ -145,4 +145,11 @@ test('model discovery preserves HTTP and cancellation failures', async () => {
   const failure = new DOMException('Aborted', 'AbortError');
   vi.stubGlobal('fetch', vi.fn().mockRejectedValue(failure));
   await expect(port.listModels(signal)).rejects.toBe(failure);
+});
+
+test('malformed HTTP JSON is a model-output failure, separate from transport failure', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('not JSON')));
+  await expect(
+    new LocalOllama().review('Hello.', emptyMemory(), 'local', new AbortController().signal),
+  ).rejects.toBeInstanceOf(MalformedModelOutput);
 });

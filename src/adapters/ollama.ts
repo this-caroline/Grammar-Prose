@@ -3,6 +3,8 @@ import { policy } from '../domain/policy';
 import { responseSchema, type Memory } from '../domain/review';
 import { isRecord } from '../domain/validation';
 
+export class MalformedModelOutput extends Error {}
+
 export const ENDPOINT = 'http://localhost:11434';
 
 export class LocalOllama implements OllamaPort {
@@ -59,16 +61,22 @@ export class LocalOllama implements OllamaPort {
       );
     }
 
-    const data: unknown = await response.json();
+    let data: unknown;
+
+    try {
+      data = await response.json();
+    } catch {
+      throw new MalformedModelOutput('Ollama returned an invalid response.');
+    }
 
     if (!isRecord(data) || !isRecord(data.message) || typeof data.message.content !== 'string') {
-      throw new Error('Ollama returned an invalid response.');
+      throw new MalformedModelOutput('Ollama returned an invalid response.');
     }
 
     try {
       return JSON.parse(data.message.content) as unknown;
     } catch {
-      throw new Error('Ollama returned invalid JSON. Try another model.');
+      throw new MalformedModelOutput('Ollama returned invalid JSON. Try another model.');
     }
   }
 }

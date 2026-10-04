@@ -156,7 +156,10 @@ export function renderReview(
 ): void {
   const title = document.createElement('h2');
   title.textContent = 'Grammar Prose';
-  panel.replaceChildren(title, paragraph(status));
+  const announcement = paragraph(status);
+  announcement.setAttribute('role', 'status');
+  announcement.setAttribute('aria-live', 'polite');
+  panel.replaceChildren(title, announcement);
 
   for (const category of categories) {
     const categorySuggestions = suggestions.filter(

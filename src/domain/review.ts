@@ -154,69 +154,119 @@ export function isSuggestion(value: unknown): value is Suggestion {
   );
 }
 
-export function validateSuggestions(raw: unknown, text: string, memory: Memory): Suggestion[] {
+const rejectionReasons = [
+  'malformed',
+  'passage',
+  'protected-term',
+  'numbers',
+  'duplicate',
+  'limit',
+] as const;
+type RejectionReason = (typeof rejectionReasons)[number];
+
+function passageRejection(
+  value: ReviewPassage,
+  text: string,
+  memory: Memory,
+  suggestions: Suggestion[],
+): RejectionReason | null {
+  const start = text.indexOf(value.original);
+
+  if (
+    start < 0 ||
+    text.indexOf(value.original, start + 1) >= 0 ||
+    value.original === value.replacement
+  ) {
+    return 'passage';
+  }
+
+  if (
+    memory.terms.some((term) => value.original.includes(term) && !value.replacement.includes(term))
+  ) {
+    return 'protected-term';
+  }
+
+  if (
+    JSON.stringify(value.original.match(/\d+(?:[.,:]\d+)*/g)) !==
+    JSON.stringify(value.replacement.match(/\d+(?:[.,:]\d+)*/g))
+  ) {
+    return 'numbers';
+  }
+
+  if (
+    suggestions.some(
+      (suggestion) =>
+        suggestion.category === value.category &&
+        suggestion.start === start &&
+        suggestion.replacement === value.replacement,
+    )
+  ) {
+    return 'duplicate';
+  }
+
+  return null;
+}
+
+export function inspectReview(raw: unknown, text: string, memory: Memory) {
   if (!isRecord(raw) || !Array.isArray(raw.suggestions)) {
     throw new Error('Ollama returned an invalid review.');
   }
 
   const suggestions: Suggestion[] = [];
+  const rejections: Record<RejectionReason, number> = {
+    malformed: 0,
+    passage: 0,
+    'protected-term': 0,
+    numbers: 0,
+    duplicate: 0,
+    limit: Math.max(0, raw.suggestions.length - MAX_SUGGESTIONS),
+  };
+  const rawItems: unknown[] = raw.suggestions;
+  const fields = ['category', 'pattern', 'original', 'replacement', 'explanation'];
+  const schemaValid =
+    Object.keys(raw).length === 1 &&
+    rawItems.length <= MAX_SUGGESTIONS &&
+    rawItems.every(
+      (item) =>
+        isRecord(item) &&
+        Object.keys(item).length === fields.length &&
+        fields.every((field) => field in item) &&
+        isOneOf(item.category, categories) &&
+        isOneOf(item.pattern, patterns) &&
+        typeof item.original === 'string' &&
+        typeof item.replacement === 'string' &&
+        typeof item.explanation === 'string',
+    );
 
-  for (const item of raw.suggestions.slice(0, MAX_SUGGESTIONS) as unknown[]) {
+  for (const item of rawItems.slice(0, MAX_SUGGESTIONS)) {
     const value = parseReviewPassage(item);
 
     if (!value) {
+      rejections.malformed++;
+      continue;
+    }
+
+    const rejection = passageRejection(value, text, memory, suggestions);
+
+    if (rejection) {
+      rejections[rejection]++;
       continue;
     }
 
     const start = text.indexOf(value.original);
-
-    if (
-      start < 0 ||
-      text.indexOf(value.original, start + 1) >= 0 ||
-      value.original === value.replacement
-    ) {
-      continue;
-    }
-
-    if (
-      memory.terms.some(
-        (term) => value.original.includes(term) && !value.replacement.includes(term),
-      )
-    ) {
-      continue;
-    }
-
-    if (
-      JSON.stringify(value.original.match(/\d+(?:[.,:]\d+)*/g)) !==
-      JSON.stringify(value.replacement.match(/\d+(?:[.,:]\d+)*/g))
-    ) {
-      continue;
-    }
-
-    if (
-      suggestions.some(
-        (suggestion) =>
-          suggestion.category === value.category &&
-          suggestion.start === start &&
-          suggestion.replacement === value.replacement,
-      )
-    ) {
-      continue;
-    }
-
     suggestions.push({
+      ...value,
       id: String(suggestions.length),
-      category: value.category,
-      pattern: value.pattern,
-      original: value.original,
-      replacement: value.replacement,
-      explanation: value.explanation,
       start,
       end: start + value.original.length,
     });
   }
 
-  return suggestions;
+  return { suggestions, schemaValid, rawCount: rawItems.length, rejections };
+}
+
+export function validateSuggestions(raw: unknown, text: string, memory: Memory): Suggestion[] {
+  return inspectReview(raw, text, memory).suggestions;
 }
 
 export function canApply(current: string, snapshot: string, suggestion: Suggestion): boolean {

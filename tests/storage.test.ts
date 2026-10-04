@@ -65,3 +65,22 @@ test('settings writes normalize valid records and reject invalid data before per
   ).rejects.toThrow();
   expect(set).not.toHaveBeenCalled();
 });
+
+test.each([
+  { version: 2, model: 'future', disabledSites: [] },
+  { version: 1, model: 42, disabledSites: [] },
+  { version: 1, model: 'local', disabledSites: ['invalid/path'] },
+])('downgrade reads preserve unsupported or corrupt settings: $version', async (settings) => {
+  const set = storage({ settings });
+  await expect(readSettings()).rejects.toThrow();
+  expect(set).not.toHaveBeenCalled();
+});
+
+test('current storage survives a read/write/read cycle without schema migration', async () => {
+  const settings = { ...defaultSettings(), model: 'qwen3.5:9b' };
+  storage({ settings, memory: emptyMemory() });
+  await writeSettings(await readSettings());
+  await new ChromeMemory().write(await new ChromeMemory().read());
+  expect(await readSettings()).toEqual(settings);
+  expect(await new ChromeMemory().read()).toEqual(emptyMemory());
+});

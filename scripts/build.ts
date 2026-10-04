@@ -1,4 +1,4 @@
-import { mkdir, copyFile, readFile, rm } from 'node:fs/promises';
+import { mkdir, copyFile, readFile, rm, writeFile } from 'node:fs/promises';
 
 import { build, type Plugin } from 'esbuild';
 import { createInstrumenter } from 'istanbul-lib-instrument';
@@ -34,6 +34,16 @@ await build({
   plugins: collectCoverage ? [coveragePlugin] : [],
 });
 
-for (const file of ['manifest.json', 'options.html', 'options.css']) {
+for (const file of ['options.html', 'options.css']) {
   await copyFile(`public/${file}`, `${outputDirectory}/${file}`);
 }
+
+const packageMetadata = JSON.parse(await readFile('package.json', 'utf8')) as { version: string };
+const manifest = JSON.parse(await readFile('public/manifest.json', 'utf8')) as Record<
+  string,
+  unknown
+>;
+await writeFile(
+  `${outputDirectory}/manifest.json`,
+  JSON.stringify({ ...manifest, version: packageMetadata.version }, null, 2) + '\n',
+);

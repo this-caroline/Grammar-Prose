@@ -16,7 +16,7 @@ For an explicitly selected installed model, follow the [local-only Ollama setup]
 pnpm eval -- --model qwen3.5:9b --dataset evals/foundation-regressions.json
 ```
 
-Requests use the same prompt, validation, fixed loopback endpoint, 25-second timeout, zero temperature, and `think: false` as the extension. Do not run against a cloud model. No model is automatically downloaded or selected. The runner writes ignored reports under `artifacts/` with case IDs, timing, category matches, model name, dataset/prompt hashes, and hardware metadata. Drafts, replacements, explanations, and arbitrary error text are not written to reports. Record the installed model digest separately when comparing mutable model tags.
+Requests use the same prompt, validation, fixed loopback endpoint, 25-second timeout, zero temperature, and `think: false` as the extension. Do not run against a cloud model. No model is automatically downloaded or selected. The runner writes ignored reports under `artifacts/` with case IDs, timing, category matches, model name, dataset/prompt hashes, and hardware metadata. Drafts, replacements, explanations, and arbitrary error text are not written to reports. The runner captures the installed model digest when available; a missing digest blocks adoption.
 
 Completion and category matching are diagnostic signals. They do not establish schema conformance, useful corrections, or preservation of urgency/negation/intent. Review suggestions in the extension against the agreed meanings and record human scores without copying private passages into reports. A rejected malformed suggestion can also look like “no suggestions”; do not count that as semantic success.
 
@@ -29,10 +29,37 @@ The [Qwen verification report](verification/qwen-verification.md) records the cu
 Agree with the user on roughly 20–30 personal cases before adopting a model for daily use. For each case, record the original sentence, expected category (or no change), non-negotiable meaning, and acceptable outcomes. Include urgent criticism, direct statements that must stay direct, technical terms, grammar-only cases, and passive-aggressive phrasing. Do not manufacture personal examples or infer labels. Keep private datasets local.
 
 `pnpm check` validates both synthetic corpus files through deterministic tests.
-The current inference report still measures completion, latency, and categories
-after filtering. It has no raw schema-validity metric, scored acceptable rewrites,
-latency budget, or failing semantic acceptance threshold. A category match must
-never be used as the release approval signal.
+Report version 2 records a UUID run identity, model digest (or null if unavailable),
+raw schema validity, raw proposal count, fixed rejection counts, completion,
+fixed outcomes, dataset/prompt hashes and latency. Malformed model output is
+separate from transport errors and valid empty reviews. Cases without completed sentences are marked `not-reviewed` and cannot pass acceptance. Version-1 reports remain
+historical evidence and cannot be scored with the new gate.
+
+User-approved cases must include `acceptableOutcomes`, a nonempty array of explicit
+acceptable rewrites or descriptions of permitted outcomes. Existing synthetic
+version-1 datasets remain valid. Reports never include this text.
+
+Use `--inspect` to display raw parsed proposals for local human inspection. This
+prints sensitive text to the terminal; do not redirect or capture it for private
+cases. Reports still omit proposals. Without this inspection, leave scores pending.
+
+Create a local score file with `version: 1`, the report's `runId`, and an
+`assessments` array. Each record has a case `id` and boolean `rawInspected`,
+`meaningPreserved`, `usefulCorrection`, and `unwantedSuggestion`. Assess all raw
+proposals, including rejected ones, against the approved meaning and outcomes.
+
+```sh
+pnpm eval:score -- --run artifacts/evaluation-RUN.json --scores /private/tmp/human-scores.json --output artifacts/scored-RUN.json
+```
+
+The scorer rejects mismatched identities, unsafe IDs, duplicate/unknown cases,
+invalid hashes and non-boolean scores. Its output contains only identity hashes,
+per-case boolean scores, counts and an adopt/reject/pending quality decision. Any meaning failure or invalid
+request rejects; missing human inspection, missing digest, synthetic provenance
+or a corpus outside 20–30 cases leaves adoption pending. A complete approved run
+requires zero meaning failures, at least 90% useful actionable cases and at most
+10% unwanted no-change cases, with both kinds of case present. This quality
+signal does not close the other release gates.
 
 Before promoting model evaluation to an acceptance gate, require:
 

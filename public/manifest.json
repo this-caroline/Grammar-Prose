@@ -1,7 +1,6 @@
 {
   "manifest_version": 3,
   "name": "Grammar Prose",
-  "version": "0.1.0",
   "description": "Review English grammar, clarity, and tone with local Ollama. You choose every change.",
   "permissions": ["storage"],
   "host_permissions": ["http://localhost:11434/*"],

@@ -6,11 +6,30 @@ export interface EvaluationCase {
   text: string;
   expectedCategories: Category[];
   meaning: string;
+  acceptableOutcomes?: string[];
 }
 export interface Dataset {
   version: 1;
   provenance: 'synthetic' | 'user-approved';
   cases: EvaluationCase[];
+}
+
+function validateAcceptableOutcomes(value: unknown): void {
+  if (value === undefined) {
+    return;
+  }
+
+  if (
+    !Array.isArray(value) ||
+    value.length === 0 ||
+    value.length > 20 ||
+    !value.every(
+      (outcome: unknown) =>
+        typeof outcome === 'string' && !!outcome.trim() && outcome.length <= MAX_TEXT,
+    )
+  ) {
+    throw new Error('Invalid acceptable outcomes.');
+  }
 }
 
 function parseEvaluationCase(value: unknown): EvaluationCase {
@@ -40,7 +59,19 @@ function parseEvaluationCase(value: unknown): EvaluationCase {
     throw new Error('Invalid evaluation case.');
   }
 
-  return { id: value.id, text: value.text, expectedCategories, meaning: value.meaning };
+  const acceptableOutcomes = value.acceptableOutcomes;
+
+  validateAcceptableOutcomes(acceptableOutcomes);
+
+  return {
+    id: value.id,
+    text: value.text,
+    expectedCategories,
+    meaning: value.meaning,
+    ...(acceptableOutcomes === undefined
+      ? {}
+      : { acceptableOutcomes: acceptableOutcomes as string[] }),
+  };
 }
 
 export function parseDataset(value: unknown): Dataset {
@@ -57,6 +88,10 @@ export function parseDataset(value: unknown): Dataset {
   }
 
   const cases = (value.cases as unknown[]).map(parseEvaluationCase);
+
+  if (value.provenance === 'user-approved' && cases.some((item) => !item.acceptableOutcomes)) {
+    throw new Error('User-approved cases require acceptable outcomes.');
+  }
 
   if (new Set(cases.map((item) => item.id)).size !== cases.length) {
     throw new Error('Duplicate evaluation case IDs.');

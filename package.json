@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.ts",
+    "package": "pnpm build && python3 scripts/package.py",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm dead-code && pnpm test && pnpm build",
+    "test:package": "python3 scripts/test-package.py",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm dead-code && pnpm test && pnpm test:package && pnpm build",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
     "lint": "oxlint --max-warnings=0 --report-unused-disable-directives",
@@ -17,6 +19,7 @@
     "test:e2e": "pnpm build && playwright test",
     "check:ci": "pnpm check && playwright test",
     "eval": "node scripts/eval.ts",
+    "eval:score": "node scripts/score.ts",
     "dead-code": "fallow dead-code --fail-on-issues --fail-on-parse-error --include-entry-exports"
   },
   "devDependencies": {
@@ -26,6 +29,8 @@
     "@types/istanbul-lib-coverage": "2.0.6",
     "@types/istanbul-lib-instrument": "1.7.8",
     "@types/node": "26.6.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
     "@vitest/coverage-v8": "5.0.2",
     "esbuild": "0.28.2",
     "fallow": "3.31.0",
@@ -34,6 +39,8 @@
     "oxfmt": "0.70.0",
     "oxlint": "1.86.0",
     "oxlint-tsgolint": "7.0.2003",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
     "typescript": "7.0.2",
     "vitest": "5.0.2"
   },
