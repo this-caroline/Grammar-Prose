@@ -1,0 +1,84 @@
+:root {
+  font:
+    16px/1.6 system-ui,
+    sans-serif;
+  color: #202e42;
+  background: #f5f7fa;
+}
+body {
+  margin: 0;
+}
+main {
+  max-width: 780px;
+  margin: 48px auto;
+  padding: 0 24px 64px;
+}
+h1 {
+  font-size: 36px;
+  line-height: 1.2;
+  letter-spacing: -1px;
+}
+h2 {
+  font-size: 21px;
+  margin-top: 0;
+}
+.eyebrow {
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: #486188;
+}
+section {
+  background: white;
+  border: 1px solid #dbe2ea;
+  border-radius: 12px;
+  padding: 24px;
+  margin: 24px 0;
+}
+label {
+  display: block;
+  font-weight: 600;
+  margin-top: 18px;
+}
+input,
+textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px;
+  margin: 6px 0 12px;
+  border: 1px solid #b7c5d6;
+  border-radius: 6px;
+  font: inherit;
+}
+textarea#memory {
+  font:
+    13px/1.5 ui-monospace,
+    monospace;
+}
+button {
+  border: 1px solid #b7c5d6;
+  border-radius: 6px;
+  background: #eef3fc;
+  padding: 9px 14px;
+  color: #19365c;
+  font: inherit;
+  cursor: pointer;
+}
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+#status {
+  position: sticky;
+  bottom: 12px;
+  background: #202e42;
+  color: white;
+  border-radius: 8px;
+  padding: 12px;
+}
+#status:empty {
+  display: none;
+}
+:focus-visible {
+  outline: 3px solid #7b9ef0;
+}

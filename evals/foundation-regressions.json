@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "provenance": "synthetic",
+  "cases": [
+    {
+      "id": "agreement",
+      "text": "The tests is failing.",
+      "expectedCategories": ["grammar"],
+      "meaning": "The tests currently fail."
+    },
+    {
+      "id": "firm-request",
+      "text": "Fix the failing tests today.",
+      "expectedCategories": [],
+      "meaning": "A requirement to fix the tests today; preserve urgency."
+    },
+    {
+      "id": "numeric-fact",
+      "text": "There are 3 failing tests.",
+      "expectedCategories": [],
+      "meaning": "Exactly 3 tests fail."
+    },
+    {
+      "id": "fixture",
+      "text": "The tests is failing. Please fix this today.",
+      "expectedCategories": ["grammar"],
+      "meaning": "Multiple tests fail; fixing them today is required; preserve the polite request."
+    },
+    {
+      "id": "plural-workers",
+      "text": "The workers needs access to the server.",
+      "expectedCategories": ["grammar"],
+      "meaning": "Multiple workers need server access."
+    },
+    {
+      "id": "singular-report",
+      "text": "The report contain 3 errors.",
+      "expectedCategories": ["grammar"],
+      "meaning": "One report contains exactly 3 errors."
+    },
+    {
+      "id": "firm-deadline",
+      "text": "Send the corrected invoice before noon.",
+      "expectedCategories": [],
+      "meaning": "Require a corrected invoice before noon."
+    },
+    {
+      "id": "polite-deadline",
+      "text": "Please send the corrected invoice before noon.",
+      "expectedCategories": [],
+      "meaning": "Preserve the polite request and noon deadline."
+    },
+    {
+      "id": "negated-approval",
+      "text": "I do not approve this release. Fix the security issue today.",
+      "expectedCategories": [],
+      "meaning": "Approval is explicitly withheld; fixing the security issue today is required."
+    },
+    {
+      "id": "technical-criticism",
+      "text": "This implementation loses data when the connection drops.",
+      "expectedCategories": [],
+      "meaning": "The implementation loses data under the stated condition."
+    },
+    {
+      "id": "personal-attack",
+      "text": "You are an idiot. Fix the failing tests today.",
+      "expectedCategories": ["tone"],
+      "meaning": "Remove the personal insult while retaining the requirement to fix failing tests today."
+    },
+    {
+      "id": "correct-plural",
+      "text": "The workers need access to the server.",
+      "expectedCategories": [],
+      "meaning": "Multiple workers need server access; already grammatical."
+    }
+  ]
+}

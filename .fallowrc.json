@@ -1,0 +1,15 @@
+{
+  "entry": [
+    "src/chrome/background.ts",
+    "src/chrome/content.ts",
+    "src/chrome/options.ts",
+    "src/evaluation/cli.ts"
+  ],
+  "ignoreUnresolvedImports": ["./options.js"],
+  "ignoreExports": [
+    {
+      "file": "playwright.config.ts",
+      "exports": ["default"]
+    }
+  ]
+}

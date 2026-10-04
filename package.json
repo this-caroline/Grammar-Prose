@@ -1,0 +1,45 @@
+{
+  "name": "grammar-ext",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm dead-code && pnpm test && pnpm build",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "lint": "oxlint --max-warnings=0 --report-unused-disable-directives",
+    "lint:fix": "oxlint --fix --report-unused-disable-directives",
+    "test:watch": "vitest",
+    "test:coverage": "node scripts/coverage.ts",
+    "test:e2e": "pnpm build && playwright test",
+    "check:ci": "pnpm check && playwright test",
+    "eval": "node scripts/eval.ts",
+    "dead-code": "fallow dead-code --fail-on-issues --fail-on-parse-error --include-entry-exports"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@stylistic/eslint-plugin": "5.10.0",
+    "@types/chrome": "0.3.0",
+    "@types/istanbul-lib-coverage": "2.0.6",
+    "@types/istanbul-lib-instrument": "1.7.8",
+    "@types/node": "26.6.3",
+    "@vitest/coverage-v8": "5.0.2",
+    "esbuild": "0.28.2",
+    "fallow": "3.31.0",
+    "istanbul-lib-coverage": "3.2.2",
+    "istanbul-lib-instrument": "6.0.3",
+    "oxfmt": "0.70.0",
+    "oxlint": "1.85.0",
+    "oxlint-tsgolint": "7.0.2003",
+    "typescript": "7.0.2",
+    "vitest": "5.0.2"
+  },
+  "engines": {
+    "node": ">=26.10.0 <27",
+    "pnpm": ">=12.6.0 <13"
+  },
+  "packageManager": "pnpm@12.6.0"
+}

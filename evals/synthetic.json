@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "provenance": "synthetic",
+  "cases": [
+    {
+      "id": "agreement",
+      "text": "The tests is failing.",
+      "expectedCategories": ["grammar"],
+      "meaning": "The tests currently fail."
+    },
+    {
+      "id": "firm-request",
+      "text": "Fix the failing tests today.",
+      "expectedCategories": [],
+      "meaning": "A requirement to fix the tests today; preserve urgency."
+    },
+    {
+      "id": "numeric-fact",
+      "text": "There are 3 failing tests.",
+      "expectedCategories": [],
+      "meaning": "Exactly 3 tests fail."
+    }
+  ]
+}

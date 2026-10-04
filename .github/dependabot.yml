@@ -1,0 +1,16 @@
+version: 2
+updates:
+  # GitHub uses the npm ecosystem identifier for npm-compatible pnpm manifests.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      oxlint:
+        patterns: [oxlint, oxlint-tsgolint]
+      vitest:
+        patterns: [vitest, '@vitest/*']
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

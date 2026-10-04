@@ -1,0 +1,8 @@
+packages:
+  - .
+
+saveExact: true
+
+allowBuilds:
+  esbuild: true
+  fsevents: false

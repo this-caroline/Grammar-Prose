@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" /><title>Grammar Prose editor fixture</title>
+  <style>
+    body {
+      font: 18px system-ui;
+      max-width: 800px;
+      margin: 40px auto;
+    }
+    input,
+    textarea,
+    [contenteditable] {
+      display: block;
+      width: 90%;
+      padding: 12px;
+      margin: 12px 0;
+      border: 1px solid #aaa;
+    }
+    textarea {
+      height: 120px;
+    }
+  </style>
+  <h1>Editor compatibility fixture</h1>
+  <p>
+    Serve this file on localhost. Type or edit a sentence in each field. Reload the extension after
+    builds.
+  </p>
+  <label>Plain input<input type="text" value="The tests is failing." /></label>
+  <label>Textarea<textarea>The tests is failing. Please fix this today.</textarea></label>
+  <p>Rich editable (copy only):</p>
+  <div contenteditable="true">The <strong>tests</strong> is failing.</div>
+  <label>Password: must never review<input type="password" /></label>
+  <label>Email: must never review<input type="email" /></label>
+  <label
+    >Opt-out: must never review<textarea data-grammar-prose-disabled>
+The tests is failing.</textarea>
+  </label>
+  <label>Readonly: must never review<textarea readonly>The tests is failing.</textarea></label>
+  <p>
+    Manual checks: accept one passage, verify other text and cursor, undo/redo, edit during an
+    in-flight review, disable field/site, stop Ollama, use keyboard navigation, enter IME text, and
+    test in a frame. React-controlled fields need a separate real application test.
+  </p>
+</html>

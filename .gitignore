@@ -1,0 +1,9 @@
+node_modules/
+dist/
+benchmark-results.json
+coverage/
+playwright-report/
+test-results/
+artifacts/
+.DS_Store
+/EXAMPLE.md

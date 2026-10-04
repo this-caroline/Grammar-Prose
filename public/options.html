@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Grammar Prose settings</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">GRAMMAR PROSE · FOUNDATION PREVIEW</p>
+      <h1>Your words. Your decision.</h1>
+      <p>
+        English grammar, clarity, and tone reviews run through Ollama on your computer. Drafts are
+        never stored by this extension. Every change needs your acceptance.
+      </p>
+      <section>
+        <h2>Local connection</h2>
+        <p>
+          Ollama is optional while developing the foundation. Install and select a local model when
+          you are ready to evaluate your writing. Cloud models are outside this project's scope.
+        </p>
+        <form id="settings">
+          <label for="model">Installed local model name</label
+          ><input
+            id="model"
+            list="models"
+            placeholder="Choose after benchmarking"
+            maxlength="200"
+          /><datalist id="models"></datalist
+          ><button id="connect" type="button">Check connection / list models</button
+          ><label for="sites">Disabled sites (one hostname per line)</label
+          ><textarea id="sites" rows="4" placeholder="example.com"></textarea
+          ><button type="submit">Save settings</button>
+        </form>
+      </section>
+      <section>
+        <h2>Personal memory</h2>
+        <p>
+          Memory stores accept/reject counts, a “too soft” count, protected terms, and preferences
+          you write. It does not store passages or model explanations. You can edit the JSON below,
+          including <code>terms</code> and <code>tonePreferences</code>. Deleting memory cannot be
+          undone unless you export it first.
+        </p>
+        <label for="memory">Memory JSON</label
+        ><textarea id="memory" rows="16" spellcheck="false"></textarea>
+        <div class="actions">
+          <button id="save-memory">Save memory</button
+          ><button id="export-memory">Export saved memory</button
+          ><button id="delete-memory">Delete memory</button>
+        </div>
+      </section>
+      <section>
+        <h2>Preview limitations</h2>
+        <p>
+          Complete a sentence with punctuation, then pause briefly.
+          <span id="review-shortcut"
+            >Check Chrome's extension keyboard shortcuts to request a review.</span
+          >
+          Plain text fields have an experimental Accept action that uses Chrome's native editing
+          command. Rich editors offer Copy suggestion. Google Docs, React-controlled inputs, and
+          undo across real sites still require compatibility testing.
+        </p>
+        <p>
+          Fields are limited to 6,000 characters. Disable field lasts for the lifetime of that
+          field; disable site persists until removed above. Passwords, non-text inputs, disabled
+          fields, and fields marked <code>data-grammar-prose-disabled</code> are skipped. Chrome
+          restricted pages cannot be reviewed.
+        </p>
+      </section>
+      <p id="status" role="status" aria-live="polite"></p>
+    </main>
+    <script src="options.js"></script>
+  </body>
+</html>
